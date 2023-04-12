@@ -30,6 +30,7 @@ class App():
         def enter_recovery_mode():
             subprocess.run(["adb", "reboot", "recovery"])
 
+
         def Acc1():
             # إيقاف عملية إنشاء واجهة المستخدم السابقة (إذا وجدت)
             # if hasattr(self, 'text'):
@@ -50,12 +51,33 @@ class App():
             else:
                 self.text.insert('1.0', 'An error occurred recovering accounts')
 
+        # def print_sms():
+            
+        #     file_path = filedialog.askopenfilename(title="Select Output File")
+        #     if not file_path:
+        #         print("No file selected.")
+        #         return False
+
+        #     adb = pyadb.ADB()
+        #     devices = adb.devices()
+        #     if not devices:
+        #         print("No device connected.")
+        #         return False
+        #     else:
+        #         device = devices[0]
+        #         messages = device.shell("content query --uri content://sms")
+        #         with open(file_path, "w") as f:
+        #             f.write(messages)
+        #         print(f"All SMS saved to {file_path}.")
+
+
         def browse_file():
             file_path = filedialog.askopenfilename(filetypes=[("All Files", "*.*")])
 
             os.system("adb install " + file_path)
 
         def ser():
+            
             
             self.text.delete('1.0', tk.END)
             # تنفيذ الأمر adb devices للتحقق من توصيل الجهاز
@@ -64,8 +86,12 @@ class App():
             # البحث عن رقم التسلسلي في نتيجة الأمر
             serial_number = adb_devices.split('\n')[1].split('\t')[0]
 
-            # إخراج رقم التسلسلي
-            self.text.insert('1.0', f"Your device serial number is : {serial_number}")
+            # الحصول على رقم الطراز باستخدام الأمر adb shell getprop ro.product.model
+            model = subprocess.run(['adb', 'shell', 'getprop', 'ro.product.model'], stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
+
+            # إخراج رقم التسلسلي ورقم الطراز
+            self.text.insert('1.0', f"Your device serial number is: {serial_number}\n")
+            self.text.insert('end', f"Your device model is: {model}")
 
         def Show1():
                     # تفريغ محتوى self.text
@@ -117,15 +143,11 @@ class App():
             video_thread = threading.Thread(target=capture_screen_video)
             video_thread.start()
 
-        def USB_D():
-            package_name = EN1.get()
-             # تفعيل تصحيح USB
-            subprocess.call(['adb', 'tcpip', '5555'])
-
-            # الانتظار لمدة 5 ثواني
-            time.sleep(5)
-
-            # الاتصال بجهاز Android عبر Wi-Fi
+        # def USB_D():
+        #     package_name = EN1.get()
+        #      # تفعيل تصحيح USB
+        #     subprocess.run(['adb', 'devices'])
+        #     subprocess.run(['adb', '-s', f'{package_name}', 'usb', 'debugging'])
             
 
             # عرض خيارات المطورين
@@ -140,6 +162,16 @@ class App():
         def open_tiktok():
             url = "https://www.tiktok.com/@bubake_r"
             webbrowser.open(url)
+
+        # def display_sms():
+        #     self.text.delete('1.0', tk.END)
+        #     adb_command = "adb shell content query --uri content://sms/"
+        #     output = subprocess.check_output(adb_command, shell=True, universal_newlines=True)
+
+            # # إدراج الرسائل في عنصر Text
+            # for data in output:
+            #     self.text.insert('end', f"{data}\n")
+            #     self.text.insert('end', '\n')
 
         bu1 = tb.Button(Ft0, text="Reboot", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=reboot_device)
         bu1.place(x=10, y=30)
@@ -174,11 +206,14 @@ class App():
         bu10 = tb.Button(Ft0, text="screen_v", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=qwe)
         bu10.place(x=120, y=80)
 
-        bu11 = tb.Button(Ft0, text="USB_D", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=USB_D)
-        bu11.place(x=120, y=130)
+        # bu11 = tb.Button(Ft0, text="USB_D", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=USB_D)
+        # bu11.place(x=120, y=130)
 
-        bu12 = tb.Button(Ft0, text="developer", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=open_tiktok)
-        bu12.place(x=120, y=430)
+        # bu12 = tb.Button(Ft0, text="SMS", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=display_sms)
+        # bu12.place(x=120, y=180)
+
+        bu13 = tb.Button(Ft0, text="developer", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=open_tiktok)
+        bu13.place(x=120, y=430)
 
         self.current_process = None  # تعيين العملية الحالية إلى None
 
