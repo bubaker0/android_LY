@@ -11,3 +11,4 @@
    
 4. تأكد من توصيل جهاز Android وتفعيل تصحيح USB.  
    Make sure your Android device is connected and USB debugging is enabled.
+   ![android_and_v1](https://github.com/user-attachments/assets/d1da2c50-e38e-4ef6-8bbb-c0b47698a07d)
