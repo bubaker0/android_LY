@@ -1,3 +1,0 @@
-[console_scripts]
-oslo-metrics = oslo_metrics.__main__:main
-
