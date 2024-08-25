@@ -1,0 +1,45 @@
+# Translations template for oslo.db.
+# Copyright (C) 2015 ORGANIZATION
+# This file is distributed under the same license as the oslo.db project.
+#
+# Translators:
+# Adriana Chisco Landazábal <achisco94@gmail.com>, 2015
+# Miriam Godinez <miriamgc@hotmail.com>, 2015
+# Andreas Jaeger <jaegerandi@gmail.com>, 2016. #zanata
+msgid ""
+msgstr ""
+"Project-Id-Version: oslo.db VERSION\n"
+"Report-Msgid-Bugs-To: https://bugs.launchpad.net/openstack-i18n/\n"
+"POT-Creation-Date: 2023-05-08 10:55+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2016-04-12 06:16+0000\n"
+"Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
+"Language: es\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Generated-By: Babel 2.0\n"
+"X-Generator: Zanata 4.3.3\n"
+"Language-Team: Spanish\n"
+
+msgid "Invalid Parameter: Encoding directive wasn't provided."
+msgstr "Parámetro no válido: No se proporcionó directiva de codificación."
+
+#, python-format
+msgid ""
+"There is no `deleted` column in `%s` table. Project doesn't use soft-deleted "
+"feature."
+msgstr ""
+"No existe la columna `deleted` en la tabla `%s`. El projecto no utiliza la "
+"característica de eliminación suave."
+
+#, python-format
+msgid "There is no `project_id` column in `%s` table."
+msgstr "No existe la columna `project_id` en la tabla `%s`."
+
+#, python-format
+msgid "Unknown sort direction, must be one of: %s"
+msgstr "Clase de dirección desconocida, debe ser una de: %s"
+
+msgid "model should be a subclass of ModelBase"
+msgstr "el modelo debe ser una subclase del ModelBase"

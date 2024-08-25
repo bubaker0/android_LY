@@ -1,77 +1,289 @@
 import tkinter as tk
-from tkinter import filedialog
-import ttkbootstrap as tb
+from tkinter import Text, filedialog, messagebox
+from PIL import Image, ImageTk
 import os
 import subprocess
-import time
-from tkinter import messagebox
 import threading
-import webbrowser
+import queue
 import requests
+import re
+import webbrowser
 
-class App():
+
+
+class App:
     def __init__(self, root):
         self.root = root
-
-        self.version = "1.0.1"
+        self.version = "1.1.2"
         self.root.title(f"Android_LY - V{self.version}")
+        self.root.geometry("900x600")
+        self.root.iconbitmap(r"Img\mobile.ico")
+        self.root.configure(bg="#000000")
+        self.root.bind("<KeyPress-Escape>", self.exit_program)
+        self.root.protocol("WM_DELETE_WINDOW", self.exit_program)
+        self.message_queue = queue.Queue()
+        self.create_widgets()
+        self.device_check_timer = None
+        self.is_device_connected = False
+        self.check_device()  # بدء عملية التحقق
+        self.process_queue()  # بدء معالجة queue
+        
+    def check_device(self):
+        try:
+            result = subprocess.run(['adb', 'devices'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            output = result.stdout.decode()
 
-        self.root.title("Android_LY")
+            lines = output.splitlines()
+            if len(lines) > 1 and "device" in lines[1]:
+                device_line = lines[1].split()
+                device_id = device_line[0]
+                device_info = f"[MTP] جهاز متصل: {device_id}"
 
+                if not self.is_device_connected:
+                    self.is_device_connected = True
+                    self.message_queue.put("جهاز متصل تم اكتشافه.")
+                else:
+                    self.message_queue.put(device_info)
 
-        Ft0 = tb.Frame(root, bootstyle="danger", width=400, height=500)
-        Ft1 = tb.Frame(root, bootstyle="info", width=400, height=500)
+            else:
+                if self.is_device_connected:
+                    self.is_device_connected = False
+                    self.message_queue.put("جهاز متصل تم فصله.")
+                else:
+                    self.message_queue.put("لا يوجد جهاز متصل.")
 
+        except Exception as e:
+            self.message_queue.put("حدث خطأ في الكشف عن الجهاز.")
 
-        self.text = tk.Text(Ft1, wrap='word')
-        self.text.pack(side='left', fill='both', expand=True)
+        self.device_check_timer = threading.Timer(5, self.check_device)
+        self.device_check_timer.start()
 
-        bu11 = tb.Button(Ft0, text="updates", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=self.check_for_updates)
-        bu11.place(x=120, y=130)
+    def process_queue(self):
+        try:
+            while True:
+                message = self.message_queue.get_nowait()
+                self.update_entry(message)
+        except queue.Empty:
+            pass
+        self.root.after(100, self.process_queue)  # استمر في معالجة queue
 
-        bu1 = tb.Button(Ft0, text="Reboot", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=self.reboot_device)
-        bu1.place(x=10, y=30)
+    def update_entry(self, message):
+        self.root.after(0, lambda: self.new_entry.delete(0, tk.END) or self.new_entry.insert(0, message))
 
-        bu2 = tb.Button(Ft0, text="data", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=self.Acc1)
-        bu2.place(x=10, y=80)
+    def stop_device_check(self):
+        if self.device_check_timer:
+            self.device_check_timer.cancel()
+        
+    def create_widgets(self):
+        self.samsung_img = Image.open("img/samsung.png").resize((50, 50))
+        self.samsung_img = ImageTk.PhotoImage(self.samsung_img)
 
-        bu3 = tb.Button(Ft0, text="Downloas_APK", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=self.browse_file)
-        bu3.place(x=10, y=130)
+        self.oppo_img = Image.open("img/oppo.png").resize((50, 50))
+        self.oppo_img = ImageTk.PhotoImage(self.oppo_img)
+        
+        self.MTK_img = Image.open("img/MTK.png").resize((50, 50))
+        self.MTK_img = ImageTk.PhotoImage(self.MTK_img)
 
-        bu4 = tb.Button(Ft0, text="serial", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=self.ser)
-        bu4.place(x=10, y=180)
+        self.top_frame = tk.Frame(self.root, bg="#000000", height=50)
+        self.top_frame.pack(side=tk.TOP, fill=tk.X)
 
-        bu5 = tb.Button(Ft0, text="Show apk", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=self.Show1)
-        bu5.place(x=10, y=230)
+        self.button_frame = tk.Frame(self.top_frame, bg="#000000")
+        self.button_frame.pack(side=tk.TOP, pady=10)
 
-        bu6 = tb.Button(Ft0, text="Open app", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=self.open_app)
-        bu6.place(x=10, y=280)
+        self.samsung_button = tk.Button(self.button_frame, image=self.samsung_img, text="Samsung", compound=tk.TOP, bg="#333333", fg="#FFFFFF", font=("Arial", 12), command=self.handle_samsung)
+        self.samsung_button.pack(side=tk.LEFT, padx=20)
 
-        bu7 = tb.Button(Ft0, text="uninstall app", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=self.uninstall_app)
-        bu7.place(x=10, y=330)
+        self.oppo_button = tk.Button(self.button_frame, image=self.oppo_img, text="OPPO", compound=tk.TOP, bg="#333333", fg="#FFFFFF", font=("Arial", 12), command=self.handle_oppo)
+        self.oppo_button.pack(side=tk.LEFT, padx=20)
+        
+        self.MTK_button = tk.Button(self.button_frame, image=self.MTK_img, text="MTK", compound=tk.TOP, bg="#333333", fg="#FFFFFF", font=("Arial", 12), command=self.handle_MTK)
+        self.MTK_button.pack(side=tk.LEFT, padx=20)
 
-        bu8 = tb.Button(Ft0, text="d_mode", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=self.enter_download_mode)
-        bu8.place(x=10, y=380)
+        self.bottom_frame = tk.Frame(self.root, bg="#000000")
+        self.bottom_frame.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
 
-        bu9 = tb.Button(Ft0, text="Recovery", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=self.enter_recovery_mode)
-        bu9.place(x=10, y=430)
+        self.bottom_frame1 = tk.Frame(self.bottom_frame, bg="#000000", width=150)
+        self.bottom_frame1.pack(side=tk.LEFT, fill=tk.Y)
 
-        bu10 = tb.Button(Ft0, text="unlock", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=self.unlock_screen)
-        bu10.place(x=120, y=30)
+        self.bottom_frame2 = tk.Frame(self.bottom_frame, bg="#000000")
+        self.bottom_frame2.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        bu11 = tb.Button(Ft0, text="screen_v", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=self.qwe)
-        bu11.place(x=120, y=80)
+        self.bottom_frame3 = tk.Frame(self.bottom_frame, bg="#000000")
+        self.bottom_frame3.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        self.bottom_frame4 = tk.Frame(self.bottom_frame, bg="#000000")
+        self.bottom_frame4.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        bu12 = tb.Button(Ft0, text="developer", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=self.open_tiktok)
-        bu12.place(x=120, y=430)
+        self.new_entry_label = tk.Label(self.bottom_frame1, text="USB", bg="#000000", fg="#FFFFFF", font=("Arial", 12))
+        self.new_entry_label.pack(pady=(10, 5))
+    
+        self.new_entry = tk.Entry(self.bottom_frame1, bg="#444444", fg="#FFFFFF", font=("Arial", 10),justify='center')
+        self.new_entry.pack(fill='x', padx=10, pady=(0, 10))
+    
+        self.text = Text(self.bottom_frame1, wrap='word', bg="#1C1C1C", font=("Arial", 10), fg="#FFFFFF")
+        self.text.pack(side='top', fill='both', expand=True, padx=10, pady=10)
 
-        self.current_process = None
+        self.create_buttons()
 
-        EN1 = tb.Entry(Ft0, state="info")
-        EN1.place(x=220, y=30)
+    def create_buttons(self):
+        self.hint_label = tk.Label(self.bottom_frame2, text="ادخل اسم تطبيق:", bg="#000000", fg="#FFFFFF", font=("Arial", 12))
+        self.hint_label.grid(row=0, column=0, columnspan=2, pady=(10, 5))
 
-        Ft0.grid(column=1, row=0)
-        Ft1.grid(column=0, row=0)
+        self.entry = tk.Entry(self.bottom_frame2 , bg="#444444", fg="#FFFFFF")
+        self.entry.grid(row=1, column=0, columnspan=2, pady=(0, 10))
+        # قم بإزالة الربط مع hide_hint
+        self.entry.bind("<FocusOut>", self.show_hint)
+
+        self.button_configs = [
+            ("Reboot", self.reboot_device),
+            ("Show Accounts", self.show_account_info),
+            ("Download APK", self.browse_file),
+            ("Serial", self.show_serial),
+            ("Show APK", self.show_installed_apps),
+            ("Open App", self.open_app),
+            ("Uninstall App", self.uninstall_app),
+            ("Download Mode", self.enter_download_mode),
+            ("Recovery Mode", self.enter_recovery_mode),
+            ("Unlock", self.unlock_screen),
+            ("Updates", self.check_for_updates),
+            ("Screen Video", self.capture_screen_video),
+            ("Developer", self.open_tiktok),
+            ("FRP - Android 11", self.bypass_frp),
+            ("FRP - Android 13", self.bypass_with_app),
+            ("Enable ADB", lambda: self.enable_adb("COM3"))
+        ]
+
+        for index, (text, command) in enumerate(self.button_configs):
+            row = (index // 2) + 2
+            column = index % 2
+            btn = tk.Button(self.bottom_frame2, text=text,bg="#333333", fg="#FFFFFF", command=command, width=15)
+            btn.grid(row=row, column=column, padx=5, pady=(5, 10))
+
+    def clear_text(self):
+        self.text.delete('1.0', tk.END)
+    def show_hint(self, event):
+        if not self.entry.get():
+            self.hint_label.grid(row=0, column=0, columnspan=2, pady=(10, 5))
+
+    def handle_samsung(self):
+        self.clear_text()
+        self.bottom_frame3.pack_forget()
+        self.bottom_frame4.pack_forget()
+        self.bottom_frame2.pack(fill=tk.BOTH, expand=True)
+
+    def handle_oppo(self):
+        self.clear_text()
+        self.bottom_frame2.pack_forget()
+        self.bottom_frame4.pack_forget()
+        self.bottom_frame3.pack(fill=tk.BOTH, expand=True)
+
+        self.hint_label_oppo = tk.Label(self.bottom_frame3, text="ادخل اسم تطبيق:", bg="#000000", fg="#FFFFFF", font=("Arial", 12))
+        self.hint_label_oppo.grid(row=0, column=0, columnspan=2, pady=(10, 5))
+
+        self.entry_oppo = tk.Entry(self.bottom_frame3,bg="#444444", fg="#FFFFFF")
+        self.entry_oppo.grid(row=1, column=0, columnspan=2, pady=(0, 10))
+        self.entry_oppo.bind("<FocusOut>", self.show_hint)
+
+        self.button_configs_oppo = [
+            ("Reboot", self.reboot_device),
+            ("Data", self.show_account_info),
+            ("Download APK", self.browse_file),
+            ("Serial", self.show_serial),
+            ("Show APK", self.show_installed_apps),
+            ("Open App", self.open_app),
+            ("Uninstall App", self.uninstall_app),
+            ("Download Mode", self.enter_download_mode),
+            ("Recovery Mode", self.enter_recovery_mode),
+            ("Unlock", self.unlock_screen),
+            ("Updates", self.check_for_updates),
+            ("Screen Video", self.capture_screen_video),
+            ("Developer", self.open_tiktok)
+        ]
+
+        for index, (text, command) in enumerate(self.button_configs_oppo):
+            row = (index // 2) + 2
+            column = index % 2
+            btn = tk.Button(self.bottom_frame3, text=text,bg="#333333", fg="#FFFFFF" ,command=command, width=15)
+            btn.grid(row=row, column=column, padx=5, pady=(5, 10))
+            
+    def handle_MTK(self):
+        self.clear_text()
+        self.bottom_frame2.pack_forget()
+        self.bottom_frame3.pack_forget()
+        self.bottom_frame4.pack(fill=tk.BOTH, expand=True)
+
+        self.hint_label_oppo = tk.Label(self.bottom_frame4, text="ادخل اسم تطبيق:", bg="#000000", fg="#FFFFFF", font=("Arial", 12))
+        self.hint_label_oppo.grid(row=0, column=0, columnspan=2, pady=(10, 5))
+
+        self.entry_oppo = tk.Entry(self.bottom_frame4 ,bg="#444444", fg="#FFFFFF")
+        self.entry_oppo.grid(row=1, column=0, columnspan=2, pady=(0, 10))
+        self.entry_oppo.bind("<FocusOut>", self.show_hint)
+
+        self.button_configs_MTK = [
+            ("Bypass Secure Boot", lambda: self.run_command("python mtk payload")),
+            ("Format", lambda: self.run_command("python mtk e userdata")),
+            ("Remove FRP", lambda: self.run_command("python mtk e frp")),
+            ("Bypass Mi Account", lambda: self.run_command("python mtk e persistent")),
+            ("Remove Demo", lambda: self.run_command("python mtk e backup")),
+            ("Unlock Bootloader", lambda: self.run_command("python mtk xflash seccfg unlock")),
+            ("Relock Bootloader", lambda: self.run_command("python mtk xflash seccfg lock")),
+            ("Read Flash", lambda: self.run_command("python mtk rf")),
+            ("Write Flash", lambda: self.run_command("python mtk wf")),
+            ("Erase Partition", lambda: self.run_command("python mtk e partition_name")),
+            ("Get Target Config", lambda: self.run_command("python mtk gettargetconfig")),
+            # أزرار إضافية
+            ("Dump BROM", lambda: self.run_command("python mtk dumpbrom")),
+            ("Dump SRAM", lambda: self.run_command("python mtk dumpsram")),
+            ("Erase Userdata", lambda: self.confirm_action("مسح بيانات المستخدم", "python mtk e userdata")),
+            ("Read GPT", lambda: self.run_command("python mtk printgpt")),
+        ]
+
+        for index, (text, command) in enumerate(self.button_configs_MTK):
+            row = (index // 2) + 2
+            column = index % 2
+            btn = tk.Button(self.bottom_frame4, text=text,bg="#333333", fg="#FFFFFF", command=command, width=15)
+            btn.grid(row=row, column=column, padx=5, pady=(5, 10))
+
+        def run_command(self, command):
+            self.clear_text()
+            try:
+                result = subprocess.run(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                output = result.stdout.decode() + result.stderr.decode()
+                self.text.insert(tk.END, output)  # عرض النتائج في مربع النص
+            except Exception as e:
+                self.text.insert(tk.END, f"حدث خطأ: {e}")
+                
+    def exit_program(self, event=None):
+        self.stop_device_check()  # إيقاف التحقق من الجهاز
+        self.root.quit()  # إغلاق البرنامج
+
+    def enable_adb(self, cur_com):
+        send_log(f"Using port {cur_com}", color="green")
+        messagebox.showinfo("Info", "Go to emergency dialer enter *#*#, click OK when done")
+        send_log("Initial...", color=None)
+
+        text = at_send_single(cur_com, "AT+KSTRINGB=0,3")
+        if "\nOK" in text:
+            send_log("OK", color="green")
+        else:
+            send_log("FAIL", color="red")
+
+        send_log("Method 1", color=None)
+        send_log("Step 1...", color=None)
+
+        text = at_send_single(cur_com, "AT+DUMPCTRL=1,0")
+        if "\nOK" in text:
+            send_log("OK", color="green")
+        else:
+            send_log("FAIL", color="red")
+
+        send_log("Step 2...", color=None)
+
+        text = at_send_single(cur_com, "AT+DEBUGLVC=0,5")
+        if "\nOK" in text:
+            send_log("OK", color="green")
+        else:
+            send_log("FAIL", color="red")
 
     def check_for_updates(self):
         try:
@@ -79,11 +291,7 @@ class App():
             response.raise_for_status()
             latest_version = response.json()["tag_name"]
             if latest_version != self.version:
-                download_path = filedialog.asksaveasfilename(
-                    defaultextension=".zip",
-                    title="حدد مكان تنزيل التحديث",
-                    filetypes=[("ZIP files", "*.zip"), ("All files", "*.*")]
-                )
+                download_path = filedialog.asksaveasfilename(defaultextension=".zip", title="حدد مكان تنزيل التحديث", filetypes=[("ZIP files", "*.zip"), ("All files", "*.*")])
                 if download_path:
                     url = response.json()["zipball_url"]
                     r = requests.get(url)
@@ -97,319 +305,249 @@ class App():
             messagebox.showerror("خطأ", str(e))
 
     def reboot_device(self):
+        self.clear_text()
         subprocess.run(["adb", "reboot"])
+        
+    def show_hint_oppo(self, event):
+        if not self.entry_oppo.get():
+            self.hint_label_oppo.grid(row=0, column=0, columnspan=2, pady=(10, 5))
 
     def enter_download_mode(self):
+        self.clear_text()
         subprocess.run(["adb", "reboot", "download"])
 
     def enter_recovery_mode(self):
+        self.clear_text()
         subprocess.run(["adb", "reboot", "recovery"])
 
-    def Acc1(self):
-        self.text.delete('1.0', tk.END)
+    def bypass_frp(self):
+        self.clear_text()
+        os.system("adb start-server")
+        os.system("adb shell am broadcast -a android.intent.action.MAIN -n com.android.settings/.Settings")
+
+    def show_account_info(self):
+        self.clear_text()
         command = ['adb', 'shell', 'dumpsys', 'account']
         result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
         if result.returncode == 0:
             output = result.stdout.decode('utf-8')
-            self.text.insert('1.0', output)
+            # تنسيق البيانات لعرض تفاصيل الحسابات
+            formatted_output = self.format_account_details(output)
         else:
-            self.text.insert('1.0', 'An error occurred recovering accounts')
+            formatted_output = 'حدث خطأ أثناء استرجاع الحسابات'
+
+        self.text.insert('1.0', formatted_output)
+
+    def format_account_details(self, output):
+        # استخراج تفاصيل الحسابات فقط
+        lines = output.splitlines()
+        account_details = []
+
+        for line in lines:
+            if 'Account {' in line:
+                account_details.append(line.strip())
+
+        return "\n".join(account_details) if account_details else "لا توجد حسابات."
 
     def browse_file(self):
-        file_path = filedialog.askopenfilename(filetypes=[("All Files", "*.*")])
-        os.system("adb install " + file_path)
+        file_path = filedialog.askopenfilename(filetypes=[("APK Files", "*.apk")])
+        if file_path:
+            self.clear_text()
+            self.text.insert(tk.END, f"تثبيت التطبيق من: {file_path}\n")
 
-    def ser(self):
+            result = subprocess.run(["adb", "install", file_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            output = result.stdout.decode('utf-8') + '\n' + result.stderr.decode('utf-8')
+
+            self.text.insert(tk.END, output + '\n')
+
+            if "Success" in output:
+                self.text.insert(tk.END, "تم تثبيت التطبيق بنجاح.\n")
+            else:
+                self.text.insert(tk.END, "فشل في تثبيت التطبيق.\n")
+
+    def bypass_with_app(self):
+        self.clear_text()
+        file_path = filedialog.askopenfilename(title="اختر ملف QuickShortcutMaker.apk", filetypes=[("APK Files", "*.apk")])
+        if file_path:
+            os.system("adb install " + file_path)
+            os.system("adb shell am start -n com.sika524.android.quickshortcut/.MainActivity")
+            messagebox.showinfo("نجاح", "تم تثبيت التطبيق وفتحه بنجاح.")
+        else:
+            messagebox.showwarning("تحذير", "لم يتم اختيار أي ملف.")
+
+    def show_serial(self):
+        self.clear_text()
         self.text.delete('1.0', tk.END)
+
+        # الحصول على رقم التسلسلي
         adb_devices = subprocess.run(['adb', 'devices'], stdout=subprocess.PIPE).stdout.decode('utf-8')
         serial_number = adb_devices.split('\n')[1].split('\t')[0]
+
+        # الحصول على المعلومات الأخرى
         model = subprocess.run(['adb', 'shell', 'getprop', 'ro.product.model'], stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
-        self.text.insert('1.0', f"Your device serial number is: {serial_number}\n")
-        self.text.insert('end', f"Your device model is: {model}")
+        brand = subprocess.run(['adb', 'shell', 'getprop', 'ro.product.brand'], stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
+        device_name = subprocess.run(['adb', 'shell', 'getprop', 'ro.product.device'], stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
+        product_name = subprocess.run(['adb', 'shell', 'getprop', 'ro.product.name'], stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
+        cpu = subprocess.run(['adb', 'shell', 'getprop', 'ro.product.cpu.abi'], stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
+        platform = subprocess.run(['adb', 'shell', 'getprop', 'ro.board.platform'], stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
 
-    def Show1(self):
+        # معلومات البرمجيات
+        build = subprocess.run(['adb', 'shell', 'getprop', 'ro.build.display.id'], stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
+        version = subprocess.run(['adb', 'shell', 'getprop', 'ro.build.version.incremental'], stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
+        build_date = subprocess.run(['adb', 'shell', 'getprop', 'ro.build.date'], stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
+        fingerprint = subprocess.run(['adb', 'shell', 'getprop', 'ro.build.fingerprint'], stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
+        security_patch = subprocess.run(['adb', 'shell', 'getprop', 'ro.build.version.security_patch'], stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
+        android_version = subprocess.run(['adb', 'shell', 'getprop', 'ro.build.version.release'], stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
+        android_sdk = subprocess.run(['adb', 'shell', 'getprop', 'ro.build.version.sdk'], stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
+
+        # معلومات الشبكة
+        network_type = subprocess.run(['adb', 'shell', 'getprop', 'gsm.network.type'], stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
+        sim_operator = subprocess.run(['adb', 'shell', 'getprop', 'gsm.operator.alpha'], stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
+        sim_state = subprocess.run(['adb', 'shell', 'getprop', 'gsm.sim.state'], stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
+
+        # نسبة البطارية
+        battery_level = subprocess.run(['adb', 'shell', 'dumpsys', 'battery'], stdout=subprocess.PIPE).stdout.decode('utf-8')
+        battery_percentage = ""
+
+        for line in battery_level.splitlines():
+            if "level" in line:
+                battery_percentage = line.split(":")[1].strip()
+                break
+
+        # عرض المعلومات بتنسيق أفضل
+        output = (
+            f"رقم التسلسلي: {serial_number}\n"
+            f"طراز الجهاز: {model}\n"
+            f"الماركة: {brand}\n"
+            f"اسم الجهاز: {device_name}\n"
+            f"اسم المنتج: {product_name}\n"
+            f"وحدة المعالجة المركزية: {cpu}\n"
+            f"المنصة: {platform}\n\n"
+            f"معلومات البرمجيات:\n"
+            f"  - البناء: {build}\n"
+            f"  - الإصدار: {version}\n"
+            f"  - تاريخ البناء: {build_date}\n"
+            f"  - البصمة: {fingerprint}\n"
+            f"  - تصحيح الأمان: {security_patch}\n"
+            f"  - إصدار Android: {android_version}\n"
+            f"  - SDK Android: {android_sdk}\n\n"
+            f"معلومات الشبكة:\n"
+            f"  - نوع الشبكة: {network_type}\n"
+            f"  - مشغل SIM: {sim_operator}\n"
+            f"  - حالة SIM: {sim_state}\n"
+            f"  - نسبة البطارية: {battery_percentage}%\n"
+        )
+
+        self.text.insert('1.0', output)
+    def show_installed_apps(self):
+        self.clear_text()
         self.text.delete('1.0', tk.END)
-        packages = subprocess.run(['adb', 'shell', 'pm', 'list', 'packages'], stdout=subprocess.PIPE).stdout.decode('utf-8')
-        external_packages = subprocess.run(['adb', 'shell', 'pm', 'list', 'packages', '-3'], stdout=subprocess.PIPE).stdout.decode('utf-8')
-
-        formatted_list = [pkg.split(':')[1][4:] for pkg in packages.split('\n') if pkg]
-        external_list = [pkg.split(':')[1][4:] for pkg in external_packages.split('\n') if pkg]
-
-        social_media_apps = {
-            "facebook": "com.facebook.katana",
-            "instagram": "com.instagram.android",
-            "twitter": "com.twitter.android",
-            "snapchat": "com.snapchat.android",
-            "tiktok": "com.tiktok.viral",
-            "youtube": "com.google.android.youtube",
-            "chrome": "com.android.chrome"
-        }
-
-        social_apps = sorted([name for name in formatted_list if name in social_media_apps.values()])
-        system_apps = sorted([name for name in formatted_list if name not in external_list and name not in social_apps])
-        sorted_external_apps = sorted(external_list)
-
-        total_count = len(formatted_list)
-        self.text.insert(tk.END, f"عدد التطبيقات المثبتة: {total_count}\n\n")
-
-        if social_apps:
-            self.text.insert(tk.END, "تطبيقات تواصل اجتماعي:\n")
-            for name in social_apps:
-                app_name = name.split('.')[-1]
-                self.text.insert(tk.END, f"  - {app_name}\n")
-            self.text.insert(tk.END, "\n")
-
-        if system_apps:
-            self.text.insert(tk.END, "تطبيقات النظام:\n")
-            for name in system_apps:
-                app_name = name.split('.')[-1]
-                self.text.insert(tk.END, f"  - {app_name}\n")
-
-        if sorted_external_apps:
-            self.text.insert(tk.END, "\nتطبيقات مثبتة من مصادر خارجية:\n")
-            for name in sorted_external_apps:
-                app_name = name.split('.')[-1]
-                self.text.insert(tk.END, f"  - {app_name}\n")
-
-        self.text.insert(tk.END, "\n--- نهاية القائمة ---\n")
+        packages = subprocess.run(['adb', 'shell', 'pm', 'list', 'packages'], stdout=subprocess.PIPE).stdout.decode('utf-8').splitlines()
+        installed_apps = [pkg.split(':')[1] for pkg in packages if pkg]
+        self.text.insert(tk.END, "التطبيقات المثبتة:\n" + "\n".join(installed_apps))
 
     def uninstall_app(self):
-        package_name = EN1.get()
-        subprocess.run(["adb", "uninstall", package_name])
+        self.clear_text()
+        app_name = self.entry.get().strip().lower()
+
+        if not re.match("^[a-zA-Z0-9_.]+$", app_name):
+            self.text.insert(tk.END, "يرجى إدخال اسم تطبيق صحيح يتكون من أحرف وأرقام فقط.\n")
+            return
+
+        packages = subprocess.run(['adb', 'shell', 'pm', 'list', 'packages'], stdout=subprocess.PIPE).stdout.decode('utf-8')
+        app_name = re.sub(r'[^a-zA-Z0-9_.]', '', app_name)
+
+        package_name = next((line.split(':')[1] for line in packages.splitlines() if app_name in line.lower()), None)
+
+        if package_name:
+            confirm = messagebox.askyesno("تأكيد", f"هل تريد إلغاء تثبيت {package_name.strip()}؟")
+            if confirm:
+                try:
+                    result = subprocess.run(["adb", "uninstall", package_name.strip()], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    self.text.insert(tk.END, result.stdout.decode('utf-8') + '\n')
+                    self.text.insert(tk.END, result.stderr.decode('utf-8') + '\n')
+                    messagebox.showinfo("نجاح", "تم إلغاء تثبيت التطبيق بنجاح.")
+                except Exception as e:
+                    self.text.insert(tk.END, f"حدث خطأ أثناء إلغاء التثبيت: {str(e)}\n")
+        else:
+            self.text.insert(tk.END, "لم يتم العثور على التطبيق.\n")
 
     def open_app(self):
-        app_name = EN1.get().strip().lower()
-        packages = subprocess.run(['adb', 'shell', 'pm', 'list', 'packages'], stdout=subprocess.PIPE).stdout.decode('utf-8')
-        package_name = None
-        for line in packages.splitlines():
-            if app_name in line.lower():
-                package_name = line.split(':')[1]
-                break
-        if package_name:
-            subprocess.run(["adb", "shell", "monkey", "-p", package_name.strip(), "-c", "android.intent.category.LAUNCHER", "1"])
-        else:
-            messagebox.showwarning("تحذير", "يرجى إدخال اسم تطبيق صحيح.")
+        self.clear_text()
+        app_name = self.entry.get().strip().lower()
 
+        if not re.match("^[a-zA-Z0-9_.]+$", app_name):
+            self.text.insert(tk.END, "يرجى إدخال اسم تطبيق صحيح يتكون من أحرف وأرقام فقط.\n\n")
+            return
+
+        packages = subprocess.run(['adb', 'shell', 'pm', 'list', 'packages'], stdout=subprocess.PIPE).stdout.decode('utf-8')
+        app_name = re.sub(r'[^a-zA-Z0-9_.]', '', app_name)
+
+        package_name = next((line.split(':')[1] for line in packages.splitlines() if app_name in line.lower()), None)
+
+        if package_name:
+            self.text.insert(tk.END, f"جارٍ فتح التطبيق: {package_name.strip()}...\n")
+            self.root.update()  # تحديث الواجهة لعرض الرسالة
+
+            try:
+                result = subprocess.run(
+                    ["adb", "shell", "monkey", "-p", package_name.strip(), "-c", "android.intent.category.LAUNCHER", "1"],
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+                output = result.stdout.decode('utf-8').strip()
+                error = result.stderr.decode('utf-8').strip()
+
+                self.clear_text()  # مسح النص قبل عرض النتائج
+                if output:
+                    self.text.insert(tk.END, f"المخرجات:\n{output}\n\n")
+                if error:
+                    self.text.insert(tk.END, f"الأخطاء:\n{error}\n\n")
+
+                if "Success" in output:
+                    self.text.insert(tk.END, "تم فتح التطبيق بنجاح.\n")
+                else:
+                    self.text.insert(tk.END, "فشل في فتح التطبيق.\n")
+            except Exception as e:
+                self.text.insert(tk.END, f"حدث خطأ أثناء فتح التطبيق: {str(e)}\n")
+        else:
+            self.text.insert(tk.END, "لم يتم العثور على التطبيق. يرجى إدخال اسم تطبيق صحيح.\n")
+    
     def unlock_screen(self):
-        subprocess.run(["adb", "shell", "input", "keyevent", "128"])
+        self.clear_text()
+        subprocess.run(["adb", "shell", "cmd", "lock_settings", "clear", "--old", "1234", "--user", "0"])
 
     def capture_screen_video(self):
-        subprocess.call(["scrcpy"])
+        self.clear_text()
+        scrcpy_path = os.path.join(os.path.dirname(__file__), "scrcpy-win64-v2.6.1", "scrcpy.exe")
 
-    def qwe(self):
-        video_thread = threading.Thread(target=self.capture_screen_video)
+        def run_scrcpy():
+            process = subprocess.Popen([scrcpy_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            for line in process.stdout:
+                if line.strip():  # تجنب إدراج الأسطر الفارغة
+                    formatted_line = f"[INFO] {line.strip()}\n"  # إضافة علامة
+                    self.text.insert(tk.END, formatted_line)
+                    self.text.see(tk.END)  # Scroll to the end
+
+            for line in process.stderr:
+                if line.strip():  # تجنب إدراج الأسطر الفارغة
+                    formatted_line = f"[ERROR] {line.strip()}\n"  # إضافة علامة
+                    self.text.insert(tk.END, formatted_line)
+                    self.text.see(tk.END)
+
+        video_thread = threading.Thread(target=run_scrcpy)
         video_thread.start()
-
     def open_tiktok(self):
         url = "https://www.tiktok.com/@x_23ly"
         webbrowser.open(url)
 
+def send_log(message, color=None):
+    print(message)  # Replace with actual logging mechanism
 
-        self.text = tk.Text(Ft1, wrap='word')
-        self.text.pack(side='left', fill='both', expand=True)
+def at_send_single(cur_com, command):
+    return "\nOK"  # Simulate a successful command execution
 
-        def reboot_device():
-            subprocess.run(["adb", "reboot"])
-
-        def enter_download_mode():
-            subprocess.run(["adb", "reboot", "download"])
-
-        def enter_recovery_mode():
-            subprocess.run(["adb", "reboot", "recovery"])
-
-
-        def Acc1():
-            # إيقاف عملية إنشاء واجهة المستخدم السابقة (إذا وجدت)
-            # if hasattr(self, 'text'):
-                # self.text.destroy()
-            self.text.delete('1.0', tk.END)
-            # إنشاء مربع نص لعرض الحسابات
-
-            # إضافة زر إغلاق النافذة
-
-            # تنفيذ أمر adb لاسترداد الحسابات
-            command = ['adb', 'shell', 'dumpsys', 'account']
-            result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-            # تحديث نص مربع النصوص بالحسابات
-            if result.returncode == 0:
-                output = result.stdout.decode('utf-8')
-                self.text.insert('1.0', output)
-            else:
-                self.text.insert('1.0', 'An error occurred recovering accounts')
-
-        # def print_sms():
-            
-        #     file_path = filedialog.askopenfilename(title="Select Output File")
-        #     if not file_path:
-        #         print("No file selected.")
-        #         return False
-
-        #     adb = pyadb.ADB()
-        #     devices = adb.devices()
-        #     if not devices:
-        #         print("No device connected.")
-        #         return False
-        #     else:
-        #         device = devices[0]
-        #         messages = device.shell("content query --uri content://sms")
-        #         with open(file_path, "w") as f:
-        #             f.write(messages)
-        #         print(f"All SMS saved to {file_path}.")
-
-
-        def browse_file():
-            file_path = filedialog.askopenfilename(filetypes=[("All Files", "*.*")])
-
-            os.system("adb install " + file_path)
-
-        def ser():
-            
-            
-            self.text.delete('1.0', tk.END)
-            # تنفيذ الأمر adb devices للتحقق من توصيل الجهاز
-            adb_devices = subprocess.run(['adb', 'devices'], stdout=subprocess.PIPE).stdout.decode('utf-8')
-
-            # البحث عن رقم التسلسلي في نتيجة الأمر
-            serial_number = adb_devices.split('\n')[1].split('\t')[0]
-
-            # الحصول على رقم الطراز باستخدام الأمر adb shell getprop ro.product.model
-            model = subprocess.run(['adb', 'shell', 'getprop', 'ro.product.model'], stdout=subprocess.PIPE).stdout.decode('utf-8').strip()
-
-            # إخراج رقم التسلسلي ورقم الطراز
-            self.text.insert('1.0', f"Your device serial number is: {serial_number}\n")
-            self.text.insert('end', f"Your device model is: {model}")
-
-        def Show1():
-                    # تفريغ محتوى self.text
-            self.text.delete('1.0', tk.END)
-
-            # تنفيذ الأمر adb devices للتحقق من توصيل الجهاز
-            adb_devices = subprocess.run(['adb', 'devices'], stdout=subprocess.PIPE).stdout.decode('utf-8')
-
-            # إضافة نص إلى self.text
-            self.text.insert(tk.END, adb_devices)
-
-            # تنفيذ الأمر adb shell pm list packages لعرض التطبيقات المثبتة
-            packages = subprocess.run(['adb', 'shell', 'pm', 'list', 'packages'], stdout=subprocess.PIPE).stdout.decode('utf-8')
-
-            # تحويل النص إلى قائمة من السلاسل
-            package_list = packages.split('\n')
-
-            # إضافة الجزء الثاني من كل سلسلة (اسم الحزمة) بدءًا من الحرف الخامس في self.text مع سطر جديد "\n" بعد كل سطر
-            for package in package_list:
-                if package != '':
-                    package_name = package.split(':')[1]
-                    if len(package_name) > 3 and package_name.split('.')[0] == 'com':
-                        self.text.insert(tk.END, package_name + "\n")
-
-            # إضافة وحدة الإدخال وزر فتح التطبيق
-            
-        
-        def uninstall_app():
-            package_name = EN1.get()
-            # الحصول على اسم التطبيق من وحدة الإدخال
-            subprocess.run(["adb", "uninstall", package_name])
-
-
-        def open_app():
-            package_name = EN1.get()
-            # الحصول على اسم التطبيق من وحدة الإدخال
-            current_process = subprocess.Popen(["adb", "shell", "monkey", "-p", f"{package_name}", "-c", "android.intent.category.LAUNCHER", "1"])
-
-        def unlock_screen():
-
-            subprocess.run(["adb", "shell", "input", "keyevent", "128"])    
-            #subprocess.run(["adb", "shell", "input", "keyevent", "25"])      
-        
-                # دالة لتصوير شاشة الهاتف الذكي المتصل في شكل فيديو
-        def capture_screen_video():
-           subprocess.call(["scrcpy"])
-        #    subprocess.call(["scrcpy", "-f", "--window-title", "اسم النافذة الخاصة بالجهاز الذي تريد التحكم فيه"])
-        def qwe():
-            video_thread = threading.Thread(target=capture_screen_video)
-            video_thread.start()
-
-        # def USB_D():
-        #     package_name = EN1.get()
-        #      # تفعيل تصحيح USB
-        #     subprocess.run(['adb', 'devices'])
-        #     subprocess.run(['adb', '-s', f'{package_name}', 'usb', 'debugging'])
-            
-
-            # عرض خيارات المطورين
-            subprocess.call(['adb', 'shell', 'am', 'start', '-n', 'com.android.settings/.DevelopmentSettings'])
-
-            # تفعيل وضع المطورين
-            subprocess.call(['adb', 'shell', 'settings', 'put', 'global', 'development_settings_enabled', '1'])
-
-            # تفعيل تصحيح USB
-            subprocess.call(['adb', 'shell', 'settings', 'put', 'global', 'adb_enabled', '1'])
-
-        def open_tiktok():
-            url = "https://www.tiktok.com/@bubake_r"
-            webbrowser.open(url)
-
-        # def display_sms():
-        #     self.text.delete('1.0', tk.END)
-        #     adb_command = "adb shell content query --uri content://sms/"
-        #     output = subprocess.check_output(adb_command, shell=True, universal_newlines=True)
-
-            # # إدراج الرسائل في عنصر Text
-            # for data in output:
-            #     self.text.insert('end', f"{data}\n")
-            #     self.text.insert('end', '\n')
-
-        bu1 = tb.Button(Ft0, text="Reboot", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=reboot_device)
-        bu1.place(x=10, y=30)
-
-        bu2 = tb.Button(Ft0, text="data", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=Acc1)
-        bu2.place(x=10, y=80)
-
-        bu3 = tb.Button(Ft0, text="Downloas_APK", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=browse_file)
-        bu3.place(x=10, y=130)
-
-        bu4 = tb.Button(Ft0, text="serial", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=ser)
-        bu4.place(x=10, y=180)
-
-        bu4 = tb.Button(Ft0, text="Show apk", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=Show1)
-        bu4.place(x=10, y=230)
-
-        bu5 = tb.Button(Ft0, text="Open app", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=open_app)
-        bu5.place(x=10, y=280)
-
-        bu6 = tb.Button(Ft0, text="uninstall app", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=uninstall_app)
-        bu6.place(x=10, y=330)
-
-        bu7 = tb.Button(Ft0, text="d_mode", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=enter_download_mode)
-        bu7.place(x=10, y=380)
-
-        bu8 = tb.Button(Ft0, text="Recovery", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=enter_recovery_mode)
-        bu8.place(x=10, y=430)
-
-        bu9 = tb.Button(Ft0, text="unlock", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=unlock_screen)
-        bu9.place(x=120, y=30)
-
-        bu10 = tb.Button(Ft0, text="screen_v", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=qwe)
-        bu10.place(x=120, y=80)
-
-        # bu11 = tb.Button(Ft0, text="USB_D", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=USB_D)
-        # bu11.place(x=120, y=130)
-
-        # bu12 = tb.Button(Ft0, text="SMS", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=display_sms)
-        # bu12.place(x=120, y=180)
-
-        bu13 = tb.Button(Ft0, text="developer", style="success.Outline.TButton", bootstyle="success, outline", width=8, command=open_tiktok)
-        bu13.place(x=120, y=430)
-
-        self.current_process = None  # تعيين العملية الحالية إلى None
-
-        EN1 = tb.Entry(Ft0, state="info")
-        EN1.place(x=220, y=30)
-        Ft0.grid(column=1,row=0)
-        Ft1.grid(column=0,row=0)
-
-
-root = tb.Window(themename="superhero")
-app = App(root)
-root.mainloop()
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = App(root)
+    root.mainloop()

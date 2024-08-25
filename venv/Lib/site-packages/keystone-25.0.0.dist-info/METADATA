@@ -1,0 +1,142 @@
+Metadata-Version: 2.1
+Name: keystone
+Version: 25.0.0
+Summary: OpenStack Identity
+Home-page: https://docs.openstack.org/keystone/latest
+Author: OpenStack
+Author-email: openstack-discuss@lists.openstack.org
+License: UNKNOWN
+Platform: UNKNOWN
+Classifier: Environment :: OpenStack
+Classifier: Intended Audience :: Information Technology
+Classifier: Intended Audience :: System Administrators
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Requires-Python: >=3.8
+Requires-Dist: Flask (!=0.11,>=1.0.2)
+Requires-Dist: Flask-RESTful (>=0.3.5)
+Requires-Dist: PyJWT (>=1.6.1)
+Requires-Dist: SQLAlchemy (>=1.4.0)
+Requires-Dist: WebOb (>=1.7.1)
+Requires-Dist: bcrypt (>=3.1.3)
+Requires-Dist: cryptography (>=2.7)
+Requires-Dist: dogpile.cache (>=1.0.2)
+Requires-Dist: jsonschema (>=3.2.0)
+Requires-Dist: keystonemiddleware (>=7.0.0)
+Requires-Dist: msgpack (>=0.5.0)
+Requires-Dist: oauthlib (>=0.6.2)
+Requires-Dist: oslo.cache (>=1.26.0)
+Requires-Dist: oslo.config (>=6.8.0)
+Requires-Dist: oslo.context (>=2.22.0)
+Requires-Dist: oslo.db (>=6.0.0)
+Requires-Dist: oslo.i18n (>=3.15.3)
+Requires-Dist: oslo.log (>=3.44.0)
+Requires-Dist: oslo.messaging (>=5.29.0)
+Requires-Dist: oslo.middleware (>=3.31.0)
+Requires-Dist: oslo.policy (>=3.10.0)
+Requires-Dist: oslo.serialization (!=2.19.1,>=2.18.0)
+Requires-Dist: oslo.upgradecheck (>=1.3.0)
+Requires-Dist: oslo.utils (>=3.33.0)
+Requires-Dist: osprofiler (>=1.4.0)
+Requires-Dist: passlib (>=1.7.0)
+Requires-Dist: pbr (!=2.1.0,>=2.0.0)
+Requires-Dist: pycadf (!=2.0.0,>=1.1.0)
+Requires-Dist: pysaml2 (>=5.0.0)
+Requires-Dist: python-keystoneclient (>=3.8.0)
+Requires-Dist: pytz (>=2013.6)
+Requires-Dist: scrypt (>=0.8.0)
+Requires-Dist: stevedore (>=1.20.0)
+Provides-Extra: ldap
+Requires-Dist: ldappool (>=2.3.1) ; extra == 'ldap'
+Requires-Dist: python-ldap (>=3.0.0) ; extra == 'ldap'
+Provides-Extra: memcache
+Requires-Dist: python-memcached (>=1.56) ; extra == 'memcache'
+Provides-Extra: test
+Requires-Dist: WebTest (>=2.0.27) ; extra == 'test'
+Requires-Dist: bandit (>=1.1.0) ; extra == 'test'
+Requires-Dist: bashate (~=2.1.0) ; extra == 'test'
+Requires-Dist: coverage (!=4.4,>=4.0) ; extra == 'test'
+Requires-Dist: fixtures (>=3.0.0) ; extra == 'test'
+Requires-Dist: flake8-docstrings ; extra == 'test'
+Requires-Dist: freezegun (>=0.3.6) ; extra == 'test'
+Requires-Dist: hacking ; extra == 'test'
+Requires-Dist: lxml (>=4.5.0) ; extra == 'test'
+Requires-Dist: oslo.db[fixtures,mysql,postgresql] (>=6.0.0) ; extra == 'test'
+Requires-Dist: oslotest (>=3.2.0) ; extra == 'test'
+Requires-Dist: pytz (>=2013.6) ; extra == 'test'
+Requires-Dist: requests (>=2.14.2) ; extra == 'test'
+Requires-Dist: stestr (>=1.0.0) ; extra == 'test'
+Requires-Dist: tempest (>=17.1.0) ; extra == 'test'
+Requires-Dist: testtools (>=2.2.0) ; extra == 'test'
+
+==================
+OpenStack Keystone
+==================
+
+.. image:: https://governance.openstack.org/tc/badges/keystone.svg
+    :target: https://governance.openstack.org/tc/reference/tags/index.html
+
+.. Change things from this point on
+
+OpenStack Keystone provides authentication, authorization and service discovery
+mechanisms via HTTP primarily for use by projects in the OpenStack family. It
+is most commonly deployed as an HTTP interface to existing identity systems,
+such as LDAP.
+
+Developer documentation, the source of which is in ``doc/source/``, is
+published at:
+
+    https://docs.openstack.org/keystone/latest
+
+The API reference and documentation are available at:
+
+    https://docs.openstack.org/api-ref/identity
+
+The canonical client library is available at:
+
+    https://opendev.org/openstack/python-keystoneclient
+
+Documentation for cloud administrators is available at:
+
+    https://docs.openstack.org/
+
+The source of documentation for cloud administrators is available at:
+
+    https://opendev.org/openstack/openstack-manuals
+
+Information about our team meeting is available at:
+
+    https://wiki.openstack.org/wiki/Meetings/KeystoneMeeting
+
+Release notes is available at:
+
+    https://docs.openstack.org/releasenotes/keystone
+
+Bugs and feature requests are tracked on Launchpad at:
+
+    https://bugs.launchpad.net/keystone
+
+Future design work is tracked at:
+
+    https://specs.openstack.org/openstack/keystone-specs
+
+Contributors are encouraged to join IRC (``#openstack-keystone`` on OFTC):
+
+    https://wiki.openstack.org/wiki/IRC
+
+Source for the project:
+
+    https://opendev.org/openstack/keystone
+
+For information on contributing to Keystone, see ``CONTRIBUTING.rst``.
+
+
+

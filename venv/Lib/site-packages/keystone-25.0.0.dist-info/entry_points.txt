@@ -1,0 +1,137 @@
+[console_scripts]
+keystone-manage = keystone.cmd.manage:main
+keystone-status = keystone.cmd.status:main
+
+[keystone.application_credential]
+sql = keystone.application_credential.backends.sql:ApplicationCredential
+
+[keystone.assignment]
+sql = keystone.assignment.backends.sql:Assignment
+
+[keystone.auth.application_credential]
+default = keystone.auth.plugins.application_credential:ApplicationCredential
+
+[keystone.auth.external]
+DefaultDomain = keystone.auth.plugins.external:DefaultDomain
+Domain = keystone.auth.plugins.external:Domain
+default = keystone.auth.plugins.external:DefaultDomain
+
+[keystone.auth.kerberos]
+default = keystone.auth.plugins.external:KerberosDomain
+
+[keystone.auth.mapped]
+default = keystone.auth.plugins.mapped:Mapped
+
+[keystone.auth.oauth1]
+default = keystone.auth.plugins.oauth1:OAuth
+
+[keystone.auth.openid]
+default = keystone.auth.plugins.mapped:Mapped
+
+[keystone.auth.password]
+default = keystone.auth.plugins.password:Password
+
+[keystone.auth.saml2]
+default = keystone.auth.plugins.mapped:Mapped
+
+[keystone.auth.token]
+default = keystone.auth.plugins.token:Token
+
+[keystone.auth.totp]
+default = keystone.auth.plugins.totp:TOTP
+
+[keystone.auth.x509]
+default = keystone.auth.plugins.mapped:Mapped
+
+[keystone.catalog]
+sql = keystone.catalog.backends.sql:Catalog
+templated = keystone.catalog.backends.templated:Catalog
+
+[keystone.credential]
+sql = keystone.credential.backends.sql:Credential
+
+[keystone.credential.provider]
+fernet = keystone.credential.providers.fernet:Provider
+
+[keystone.endpoint_filter]
+sql = keystone.catalog.backends.sql:Catalog
+
+[keystone.endpoint_policy]
+sql = keystone.endpoint_policy.backends.sql:EndpointPolicy
+
+[keystone.federation]
+sql = keystone.federation.backends.sql:Federation
+
+[keystone.identity]
+ldap = keystone.identity.backends.ldap:Identity
+sql = keystone.identity.backends.sql:Identity
+
+[keystone.identity.id_generator]
+sha256 = keystone.identity.id_generators.sha256:Generator
+
+[keystone.identity.id_mapping]
+sql = keystone.identity.mapping_backends.sql:Mapping
+
+[keystone.identity.shadow_users]
+sql = keystone.identity.shadow_backends.sql:ShadowUsers
+
+[keystone.oauth1]
+sql = keystone.oauth1.backends.sql:OAuth1
+
+[keystone.policy]
+rules = keystone.policy.backends.rules:Policy
+sql = keystone.policy.backends.sql:Policy
+
+[keystone.receipt.provider]
+fernet = keystone.receipt.providers.fernet:Provider
+
+[keystone.resource]
+sql = keystone.resource.backends.sql:Resource
+
+[keystone.resource.domain_config]
+sql = keystone.resource.config_backends.sql:DomainConfig
+
+[keystone.revoke]
+sql = keystone.revoke.backends.sql:Revoke
+
+[keystone.role]
+sql = keystone.assignment.role_backends.sql:Role
+
+[keystone.server_middleware]
+cors = oslo_middleware:CORS
+debug = oslo_middleware:Debug
+http_proxy_to_wsgi = oslo_middleware:HTTPProxyToWSGI
+osprofiler = osprofiler.web:WsgiMiddleware
+request_id = oslo_middleware:RequestId
+sizelimit = oslo_middleware:RequestBodySizeLimiter
+
+[keystone.token.provider]
+fernet = keystone.token.providers.fernet:Provider
+jws = keystone.token.providers.jws:Provider
+
+[keystone.trust]
+sql = keystone.trust.backends.sql:Trust
+
+[keystone.unified_limit]
+sql = keystone.limit.backends.sql:UnifiedLimit
+
+[keystone.unified_limit.model]
+flat = keystone.limit.models.flat:FlatModel
+strict_two_level = keystone.limit.models.strict_two_level:StrictTwoLevelModel
+
+[oslo.config.opts]
+keystone = keystone.conf.opts:list_opts
+
+[oslo.config.opts.defaults]
+keystone = keystone.conf:set_external_opts_defaults
+
+[oslo.policy.enforcer]
+keystone = keystone.common.rbac_enforcer.policy:get_enforcer
+
+[oslo.policy.policies]
+keystone = keystone.common.policies:list_rules
+
+[wsgi_scripts]
+keystone-wsgi-admin = keystone.server.wsgi:initialize_admin_application
+keystone-wsgi-public = keystone.server.wsgi:initialize_public_application
+
