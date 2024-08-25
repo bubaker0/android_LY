@@ -63,6 +63,7 @@ python main.py
 
 
 ![samsung](https://github.com/user-attachments/assets/1656b8e1-0d59-4189-bd4b-56136ae4a9f8)
+
 ### 1. Samsung
 - **Reboot**: لإعادة تشغيل الجهاز.
 - **Show Accounts**: لعرض معلومات الحسابات الموجودة على الجهاز.
@@ -80,8 +81,9 @@ python main.py
 - **FRP - Android 11**: لتجاوز حماية إعادة ضبط المصنع لأندرويد 11.
 - **FRP - Android 13**: لتجاوز حماية إعادة ضبط المصنع لأندرويد 13.
 - **Enable ADB**: لتمكين ADB عبر منفذ معين.
-```
+---
 ![oppo](https://github.com/user-attachments/assets/c1277666-cddc-4706-9f08-abddc7b05d62)
+
 ### 2. Oppo
 - **Reboot**: لإعادة تشغيل الجهاز.
 - **Data**: لعرض معلومات البيانات.
@@ -96,8 +98,9 @@ python main.py
 - **Updates**: للتحقق من التحديثات.
 - **Screen Video**: لتسجيل فيديو للشاشة.
 - **Developer**: لفتح تطبيق للمطورين.
-```
+---
 ![MTK](https://github.com/user-attachments/assets/c1a2ae35-0bbe-43c9-b71f-c45a90b4494c)
+
 ### 3. MTK
 - **Bypass Secure Boot**: لتجاوز أمان التمهيد.
 - **Format**: لتهيئة بيانات الجهاز.
