@@ -14,7 +14,7 @@ import webbrowser
 class App:
     def __init__(self, root):
         self.root = root
-        self.version = "1.1.2"
+        self.version = "1.1.3"
         self.root.title(f"Android_LY - V{self.version}")
         self.root.geometry("900x600")
         self.root.iconbitmap(r"Img\mobile.ico")
@@ -124,6 +124,28 @@ class App:
         self.text.pack(side='top', fill='both', expand=True, padx=10, pady=10)
 
         self.create_buttons()
+        
+    
+    
+    def remove_lock(self):
+
+        try:
+            # التأكد من أن الجهاز متصل
+
+            result = subprocess.run(["adb", "devices"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            output = result.stdout.decode()
+            if "device" in output:
+                # الدخول إلى وضع الاسترداد
+                os.system("adb reboot recovery")
+                # تنفيذ الأوامر لإزالة القفل
+                os.system("adb shell rm /data/system/gesture.key")
+                os.system("adb shell rm /data/system/locksettings.db")
+                self.text.insert(tk.END, "تمت إزالة القفل بنجاح.\n")
+            else:
+                self.text.insert(tk.END, "لا يوجد جهاز متصل.\n")
+        except Exception as e:
+            self.text.insert(tk.END, f"حدث خطأ: {e}\n")
+
 
     def create_buttons(self):
         self.hint_label = tk.Label(self.bottom_frame2, text="ادخل اسم تطبيق:", bg="#000000", fg="#FFFFFF", font=("Arial", 12))
@@ -149,7 +171,8 @@ class App:
             ("Screen Video", self.capture_screen_video),
             ("Developer", self.open_tiktok),
             ("FRP - Android 11", self.bypass_frp),
-            ("FRP - Android 13", self.bypass_with_app),
+            ("FRP", self.bypass_with_app),
+            ("remove_lock", self.remove_lock),
             ("Enable ADB", lambda: self.enable_adb("COM3"))
         ]
 
@@ -186,7 +209,7 @@ class App:
 
         self.button_configs_oppo = [
             ("Reboot", self.reboot_device),
-            ("Data", self.show_account_info),
+            ("Data", self.show_account_infoo),
             ("Download APK", self.browse_file),
             ("Serial", self.show_serial),
             ("Show APK", self.show_installed_apps),
@@ -206,52 +229,57 @@ class App:
             btn = tk.Button(self.bottom_frame3, text=text,bg="#333333", fg="#FFFFFF" ,command=command, width=15)
             btn.grid(row=row, column=column, padx=5, pady=(5, 10))
             
-    def handle_MTK(self):
-        self.clear_text()
-        self.bottom_frame2.pack_forget()
-        self.bottom_frame3.pack_forget()
-        self.bottom_frame4.pack(fill=tk.BOTH, expand=True)
+    def run_command(self, command):
+        self.clear_text()  # مسح المخرجات السابقة
+        try:
+            result = subprocess.run(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            output = result.stdout.decode() + result.stderr.decode()  # دمج المخرجات
+            self.text.insert(tk.END, output)  # عرض النتائج في منطقة النص
+        except Exception as e:
+            self.text.insert(tk.END, f"حدث خطأ: {e}")  # عرض رسالة الخطأ
 
-        self.hint_label_oppo = tk.Label(self.bottom_frame4, text="ادخل اسم تطبيق:", bg="#000000", fg="#FFFFFF", font=("Arial", 12))
+    def handle_MTK(self):
+        self.clear_text()  # مسح أي مخرجات سابقة
+        self.bottom_frame2.pack_forget()  # إخفاء الإطارات الأخرى
+        self.bottom_frame3.pack_forget()
+        self.bottom_frame4.pack(fill=tk.BOTH, expand=True)  # عرض إطار MTK
+
+        # تسمية لحقل إدخال اسم التطبيق
+        self.hint_label_oppo = tk.Label(
+            self.bottom_frame4, text="ادخل اسم تطبيق:", bg="#000000", fg="#FFFFFF", font=("Arial", 12)
+        )
         self.hint_label_oppo.grid(row=0, column=0, columnspan=2, pady=(10, 5))
 
-        self.entry_oppo = tk.Entry(self.bottom_frame4 ,bg="#444444", fg="#FFFFFF")
+        # حقل إدخال اسم التطبيق
+        self.entry_oppo = tk.Entry(self.bottom_frame4, bg="#444444", fg="#FFFFFF")
         self.entry_oppo.grid(row=1, column=0, columnspan=2, pady=(0, 10))
         self.entry_oppo.bind("<FocusOut>", self.show_hint)
 
+        # تكوين الأزرار لعمليات MTK
         self.button_configs_MTK = [
-            ("Bypass Secure Boot", lambda: self.run_command("python mtk payload")),
-            ("Format", lambda: self.run_command("python mtk e userdata")),
-            ("Remove FRP", lambda: self.run_command("python mtk e frp")),
-            ("Bypass Mi Account", lambda: self.run_command("python mtk e persistent")),
-            ("Remove Demo", lambda: self.run_command("python mtk e backup")),
-            ("Unlock Bootloader", lambda: self.run_command("python mtk xflash seccfg unlock")),
-            ("Relock Bootloader", lambda: self.run_command("python mtk xflash seccfg lock")),
-            ("Read Flash", lambda: self.run_command("python mtk rf")),
-            ("Write Flash", lambda: self.run_command("python mtk wf")),
-            ("Erase Partition", lambda: self.run_command("python mtk e partition_name")),
-            ("Get Target Config", lambda: self.run_command("python mtk gettargetconfig")),
-            # أزرار إضافية
-            ("Dump BROM", lambda: self.run_command("python mtk dumpbrom")),
-            ("Dump SRAM", lambda: self.run_command("python mtk dumpsram")),
-            ("Erase Userdata", lambda: self.confirm_action("مسح بيانات المستخدم", "python mtk e userdata")),
-            ("Read GPT", lambda: self.run_command("python mtk printgpt")),
+            ("Bypass Secure Boot", lambda: self.run_command("python android_LY-main/mtkclient-main/mtk.py payload")),
+            ("Format", lambda: self.run_command("python android_LY-main/mtkclient-main/mtk.py e userdata")),
+            ("Remove FRP", lambda: self.run_command("python android_LY-main/mtkclient-main/mtk.py e frp")),
+            ("Bypass Mi Account", lambda: self.run_command("python android_LY-main/mtkclient-main/mtk.py e persistent")),
+            ("Remove Demo", lambda: self.run_command("python android_LY-main/mtkclient-main/mtk.py e backup")),
+            ("Unlock Bootloader", lambda: self.run_command("python android_LY-main/mtkclient-main/mtk.py xflash seccfg unlock")),
+            ("Relock Bootloader", lambda: self.run_command("python android_LY-main/mtkclient-main/mtk.py xflash seccfg lock")),
+            ("Read Flash", lambda: self.run_command("python android_LY-main/mtkclient-main/mtk.py rf")),
+            ("Write Flash", lambda: self.run_command("python android_LY-main/mtkclient-main/mtk.py wf")),
+            ("Erase Partition", lambda: self.run_command("python android_LY-main/mtkclient-main/mtk.py e partition_name")),
+            ("Get Target Config", lambda: self.run_command("python android_LY-main/mtkclient-main/mtk.py gettargetconfig")),
+            ("Dump BROM", lambda: self.run_command("python android_LY-main/mtkclient-main/mtk.py dumpbrom")),
+            ("Dump SRAM", lambda: self.run_command("python android_LY-main/mtkclient-main/mtk.py dumpsram")),
+            ("Erase Userdata", lambda: self.confirm_action("مسح بيانات المستخدم", "python android_LY-main/mtkclient-main/mtk.py e userdata")),
+            ("Read GPT", lambda: self.run_command("python android_LY-main/mtkclient-main/mtk.py printgpt")),
         ]
 
+        # إنشاء الأزرار لكل عملية
         for index, (text, command) in enumerate(self.button_configs_MTK):
             row = (index // 2) + 2
             column = index % 2
-            btn = tk.Button(self.bottom_frame4, text=text,bg="#333333", fg="#FFFFFF", command=command, width=15)
+            btn = tk.Button(self.bottom_frame4, text=text, bg="#333333", fg="#FFFFFF", command=command, width=15)
             btn.grid(row=row, column=column, padx=5, pady=(5, 10))
-
-        def run_command(self, command):
-            self.clear_text()
-            try:
-                result = subprocess.run(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                output = result.stdout.decode() + result.stderr.decode()
-                self.text.insert(tk.END, output)  # عرض النتائج في مربع النص
-            except Exception as e:
-                self.text.insert(tk.END, f"حدث خطأ: {e}")
                 
     def exit_program(self, event=None):
         self.stop_device_check()  # إيقاف التحقق من الجهاز
@@ -290,19 +318,24 @@ class App:
             response = requests.get("https://api.github.com/repos/bubaker0/android_LY/releases/latest")
             response.raise_for_status()
             latest_version = response.json()["tag_name"]
+
             if latest_version != self.version:
-                download_path = filedialog.asksaveasfilename(defaultextension=".zip", title="حدد مكان تنزيل التحديث", filetypes=[("ZIP files", "*.zip"), ("All files", "*.*")])
-                if download_path:
-                    url = response.json()["zipball_url"]
-                    r = requests.get(url)
-                    r.raise_for_status()
-                    with open(download_path, "wb") as f:
-                        f.write(r.content)
-                    messagebox.showinfo("نجاح", "تم تنزيل التحديث بنجاح!")
+                # تأكيد من المستخدم
+                if messagebox.askyesno("تحديث متاح", f"هل تريد تحديث إلى الإصدار {latest_version}?"):
+                    # تحديد اسم الملف تلقائيًا
+                    default_filename = f"android_LY_{latest_version}.zip"
+                    download_path = filedialog.asksaveasfilename(defaultextension=".zip", initialfile=default_filename, title="حدد مكان تنزيل التحديث", filetypes=[("ZIP files", "*.zip"), ("All files", "*.*")])
+                    if download_path:
+                        url = response.json()["zipball_url"]
+                        r = requests.get(url)
+                        r.raise_for_status()
+                        with open(download_path, "wb") as f:
+                            f.write(r.content)
+                        messagebox.showinfo("نجاح", "تم تنزيل التحديث بنجاح!")
             else:
                 messagebox.showinfo("لا توجد تحديثات", "أنت تستخدم أحدث إصدار.")
         except Exception as e:
-            messagebox.showerror("خطأ", str(e))
+            messagebox.showerror("خطأ", f"حدث خطأ: {str(e)}")
 
     def reboot_device(self):
         self.clear_text()
@@ -325,6 +358,38 @@ class App:
         os.system("adb start-server")
         os.system("adb shell am broadcast -a android.intent.action.MAIN -n com.android.settings/.Settings")
 
+    def show_account_infoo(self):
+        self.clear_text()
+        command = ['adb', 'shell', 'dumpsys', 'account']
+        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    
+        if result.returncode == 0:
+            output = result.stdout.decode('utf-8')
+            formatted_output = self.format_account_details(output)
+    
+            # التحقق مما إذا كانت هناك حسابات Google
+            if "Google" not in output:
+                google_command = [
+                    'adb', 'shell', 'content', 'query',
+                    '--uri', 'content://com.google.android.gsf.account',
+                    '--projection', 'account_name'
+                ]
+                google_result = subprocess.run(google_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    
+                if google_result.returncode == 0:
+                    google_output = google_result.stdout.decode('utf-8')
+                    formatted_output += "\n\nتفاصيل حسابات Google:\n"
+                    formatted_output += google_output  # عرض الناتج مباشرة
+                else:
+                    formatted_output += "\nلم يتم العثور على حسابات Google أيضًا."
+            else:
+                formatted_output += "\nتوجد حسابات Google."
+    
+        else:
+            formatted_output = 'حدث خطأ أثناء استرجاع الحسابات'
+    
+        self.text.insert('1.0', formatted_output)
+        
     def show_account_info(self):
         self.clear_text()
         command = ['adb', 'shell', 'dumpsys', 'account']
@@ -334,6 +399,18 @@ class App:
             output = result.stdout.decode('utf-8')
             # تنسيق البيانات لعرض تفاصيل الحسابات
             formatted_output = self.format_account_details(output)
+
+            # تحقق مما إذا كانت هناك حسابات
+            if "Google" not in output:
+                google_command = ['adb', 'shell', 'dumpsys', 'google']
+                google_result = subprocess.run(google_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+                if google_result.returncode == 0:
+                    google_output = google_result.stdout.decode('utf-8')
+                    formatted_output += "\n\nتفاصيل حسابات Google:\n"
+                    formatted_output += self.format_account_details(google_output)
+                else:
+                    formatted_output += "\nلم يتم العثور على حسابات Google أيضًا."
         else:
             formatted_output = 'حدث خطأ أثناء استرجاع الحسابات'
 
@@ -368,13 +445,23 @@ class App:
 
     def bypass_with_app(self):
         self.clear_text()
-        file_path = filedialog.askopenfilename(title="اختر ملف QuickShortcutMaker.apk", filetypes=[("APK Files", "*.apk")])
-        if file_path:
-            os.system("adb install " + file_path)
-            os.system("adb shell am start -n com.sika524.android.quickshortcut/.MainActivity")
-            messagebox.showinfo("نجاح", "تم تثبيت التطبيق وفتحه بنجاح.")
-        else:
-            messagebox.showwarning("تحذير", "لم يتم اختيار أي ملف.")
+
+        try:
+            # تحديد نوع الجهاز
+            device_info = subprocess.check_output("adb shell getprop ro.product.manufacturer", shell=True).decode().strip()
+
+            if device_info.lower() == "samsung":
+                # أوامر ADB لأجهزة Samsung
+                os.system("adb shell am start -n com.google.android.gsf.login/")
+                os.system("adb shell am start -n com.google.android.gsf.login.LoginActivity")
+                os.system("adb shell content insert --uri content://settings/secure --bind name:s:user_setup_complete --bind value:s:1")
+            else:
+                # أوامر ADB لأجهزة أخرى
+                os.system("adb shell content insert --uri content://settings/secure --bind name:s:user_setup_complete --bind value:s:1")
+
+            messagebox.showinfo("نجاح", "تم تجاوز FRP بنجاح.")
+        except Exception as e:
+            messagebox.showerror("خطأ", f"حدث خطأ: {e}")
 
     def show_serial(self):
         self.clear_text()
